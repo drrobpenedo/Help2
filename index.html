@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Recovery Aid – Interactive Demo</title>
+<meta name="theme-color" content="#0b1220"/>
+<style>
+:root{
+  --bg:#060b16; --bg2:#0b1220; --panel:#0f1726; --panel-2:#101a2d; --text:#eaf1ff; --muted:#a6b7d9;
+  --accent:#61eaff; --accent-2:#9c8cff; --red:#ff6b6b; --green:#67f79a; --yellow:#ffd166;
+  --border:#1c2640; --radius:16px; --shadow:0 10px 40px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{
+  margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; color:var(--text);
+  background:
+    radial-gradient(1000px 600px at 20% -10%, rgba(103,247,154,.08), transparent 60%),
+    radial-gradient(900px 700px at 120% 10%, rgba(167,139,250,.10), transparent 60%),
+    linear-gradient(180deg,#070b16,#0b1220 30%,#0b1220 70%,#09101d);
+}
+a{color:var(--accent)}
+.wrap{max-width:1200px;margin:0 auto;padding:18px 22px}
+header{position:sticky;top:0;background:linear-gradient(180deg,rgba(9,14,28,.9),rgba(9,14,28,.55));border-bottom:1px solid var(--border);backdrop-filter:blur(10px);z-index:20}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:38px;height:38px;border-radius:12px;background:conic-gradient(from 0deg,var(--accent),var(--accent-2),#67f79a,var(--accent)); box-shadow:var(--shadow)}
+h1{font-size:22px;margin:0}
+.small{font-size:12px;color:var(--muted)}
+.grid{display:grid;gap:18px;grid-template-columns:repeat(12,1fr)}
+.card{grid-column:span 12;background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+@media (min-width:900px){.span-3{grid-column:span 3}.span-4{grid-column:span 4}.span-5{grid-column:span 5}.span-6{grid-column:span 6}.span-7{grid-column:span 7}.span-8{grid-column:span 8}.span-12{grid-column:span 12}}
+.btn{appearance:none;border:1px solid var(--border);border-radius:12px;padding:10px 14px;cursor:pointer;background:linear-gradient(180deg,#0f1a2b,#0c1525);color:var(--text);font-weight:700;letter-spacing:.2px;transition:.2s transform}
+.btn:active{transform:translateY(1px)}
+.btn.accent{border-color:rgba(110,231,255,.35);background:linear-gradient(180deg,#112438,#0f1d31)}
+.btn.red{border-color:rgba(255,107,107,.35);background:linear-gradient(180deg,#2a1215,#1c0f12)}
+.btn.green{border-color:rgba(103,247,154,.35);background:linear-gradient(180deg,#0f241a,#0c1c15)}
+.badge{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
+input,textarea,select{width:100%;background:#0c1525;color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+textarea{min-height:96px;resize:vertical}
+.kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:#0b1422;border:1px solid var(--border);padding:2px 6px;border-radius:6px;color:var(--muted)}
+.tabbar{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+.tab{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:#0f1a2b;cursor:pointer}
+.tab.sel{border-color:rgba(110,231,255,.35);box-shadow:0 0 0 2px rgba(110,231,255,.15) inset}
+.hr{height:1px;background:linear-gradient(90deg,transparent,rgba(110,231,255,.25),transparent);margin:8px -16px}
+.meter{height:12px;border-radius:999px;background:#0f1a2b;border:1px solid var(--border);overflow:hidden}
+.meter>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+canvas{width:100%;height:190px;background:#0a1424;border-radius:12px;border:1px solid var(--border)}
+.list{display:grid;gap:10px}
+.item{padding:12px;border-radius:12px;border:1px solid var(--border);background:#0c1525}
+.modal{position:fixed;inset:0;display:none;place-items:center;z-index:50;background:radial-gradient(600px 600px at 50% 0%, rgba(255,107,107,.15), transparent 60%), rgba(5,8,14,.7)}
+.modal.show{display:grid}
+.sheet{width:min(760px,calc(100% - 28px));background:linear-gradient(180deg,#0f1726,#0c1322);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+.toast{position:fixed;right:16px;bottom:16px;background:#0c1525;border:1px solid var(--border);padding:12px 14px;border-radius:10px;box-shadow:var(--shadow);display:none}
+.toast.show{display:block}
+.confetti{position:absolute;top:0;left:0;width:100%;height:0;pointer-events:none}
+@media (forced-colors: active) { * { forced-color-adjust: none; } }
+:root { color-scheme: dark; }
+html, body { filter:none !important; -webkit-filter:none !important; }
+</style>
+</head>
+<body>
+  <div id="root"><div style="padding:16px;color:#a6b7d9" id="boot-status">Loading…</div></div>
+
+  <!-- React + Babel CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin="anonymous"></script>
+
+  <!-- App code begins -->
+  <script type="text/babel" data-presets="env,react">
+const {useState,useEffect,useRef,Fragment,useMemo} = React;
+
+/* ========= Utils & Mock API ========= */
+const LS={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),clear:()=>localStorage.clear()};
+const todayKey=()=>new Date().toISOString().slice(0,10);
+const speak=t=>{try{speechSynthesis.speak(new SpeechSynthesisUtterance(t))}catch{}};
+const toast=t=>{const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1700)};
+const esc=s=>(s||"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const api={
+  saveCheckin:async(e)=>{const a=LS.get("checkins",[]);const i=a.findIndex(x=>x.date===e.date);if(i>=0)a[i]=e;else a.push(e);LS.set("checkins",a);return{ok:true}},
+  listCheckins:async()=>LS.get("checkins",[]),
+
+  saveJournal:async(e)=>{const j=LS.get("journal",[]);j.push(e);LS.set("journal",j);return{ok:true}},
+  listJournal:async()=>LS.get("journal",[]),
+
+  saveSafety:async(s)=>{LS.set("safety",s);return{ok:true}},getSafety:async()=>LS.get("safety",{}),
+
+  listMentors:async()=>LS.get("mentors",[
+    {id:"m1",name:"Alex R.",yearsSober:3,areas:["opioids","relapse"],tz:"ET",bio:"Calm accountability + SMART tools",city:"Tampa, FL"},
+    {id:"m2",name:"Jasmin S.",yearsSober:5,areas:["stimulants","anxiety"],tz:"CT",bio:"CBT worksheets & check-ins",city:"Austin, TX"},
+    {id:"m3",name:"Diego M.",yearsSober:2,areas:["alcohol","harm reduction"],tz:"PT",bio:"Non-judgmental and practical",city:"San Diego, CA"},
+  ]),
+  createMentorRequest:async(r)=>{const a=LS.get("mentorRequests",[]);a.push({...r,id:String(Math.random()).slice(2)});LS.set("mentorRequests",a);return{ok:true}},
+  listMentorRequests:async()=>LS.get("mentorRequests",[]),
+
+  // NEW: profile + notifications
+  saveProfile: async (p)=>{ LS.set("profile", p); return {ok:true}; },
+  getProfile: async ()=> LS.get("profile", { name:"", email:"", phone:"" }),
+
+  saveNotifPrefs: async (p)=>{ LS.set("notifPrefs", p); return {ok:true}; },
+  getNotifPrefs: async ()=> LS.get("notifPrefs", { push:true, email:true, sms:false }),
+
+  sendEmail: async ({to,subject,body})=>{
+    if(!to) return {ok:false,error:"no email"};
+    window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return {ok:true};
+  },
+  sendSMS: async ({to,body})=>{
+    if(!to) return {ok:false,error:"no phone"};
+    window.location.href = `sms:${encodeURIComponent(to)}?&body=${encodeURIComponent(body)}`;
+    return {ok:true};
+  },
+  sendPush: async ({title,body})=>{
+    try{
+      if(Notification && Notification.permission==="default"){ await Notification.requestPermission(); }
+      if(Notification && Notification.permission==="granted"){
+        new Notification(title||"Recovery Aid", { body: body||"You’ve got this. One step at a time 💪" });
+        return {ok:true};
+      }
+      toast("Push blocked. Enable site notifications in your browser.");
+      return {ok:false};
+    }catch(e){ return {ok:false,error:String(e)} }
+  },
+
+  seedDemo:()=>{const base=Date.now()-180*86400000;const arr=[];for(let i=0;i<180;i++){const d=new Date(base+i*86400000).toISOString().slice(0,10);arr.push({date:d,mood:Math.max(0,Math.min(10,4+Math.sin(i/9)+Math.random()*1.5)),crave:Math.max(0,Math.min(10,6-Math.cos(i/11)+Math.random()*1.3))})}LS.set("checkins",arr)},
+  wipeAll:()=>{LS.clear();location.reload()}
+};
+const RESOURCES={
+  US:[
+    {name:"988 Suicide & Crisis Lifeline",tags:["suicide","crisis","chat","call"],url:"https://988lifeline.org",phone:"988"},
+    {name:"SAMHSA National Helpline (24/7)",tags:["treatment","addiction","referral"],url:"https://www.samhsa.gov/find-help/national-helpline",phone:"1-800-662-HELP"},
+    {name:"FindTreatment.gov",tags:["detox","rehab","treatment"],url:"https://findtreatment.gov"},
+    {name:"SMART Recovery (meetings)",tags:["peer","cbt","support"],url:"https://www.smartrecovery.org/local/"},
+    {name:"Narcotics Anonymous (meetings)",tags:["peer","12-step","support"],url:"https://na.org/meetingsearch/"},
+    {name:"Narcan (Naloxone) Info",tags:["overdose","naloxone"],url:"https://www.narcan.com/"},
+    {name:"Never Use Alone (hotline)",tags:["harm reduction","overdose"],url:"https://neverusealone.com",phone:"800-484-3731"},
+    {name:"Narconon (Scientology-affiliated)",tags:["residential","abstinence","faith-adjacent"],url:"https://www.narconon.org/"}
+  ],
+  GLOBAL:[
+    {name:"Befrienders Worldwide",tags:["suicide","hotlines"],url:"https://www.befrienders.org/"},
+    {name:"WHO mhGAP",tags:["guidance","clinician","global"],url:"https://www.who.int/teams/mental-health-and-substance-use/mental-health-gap-action-programme"},
+    {name:"UNODC – Prevention & Treatment",tags:["policy","harm reduction"],url:"https://www.unodc.org/unodc/en/drug-prevention-and-treatment/index.html"},
+    {name:"SMART Recovery (global)",tags:["peer","cbt","support"],url:"https://www.smartrecovery.org/community/"},
+    {name:"NA World Services",tags:["peer","12-step"],url:"https://na.org/meetingsearch/"}
+  ]
+};
+
+/* --- helper: preview today's values in metrics without saving --- */
+const withPreview = (rows, current) => {
+  const t = todayKey();
+  if (!current || (current.mood==null && current.crave==null)) return rows;
+  const i = rows.findIndex(r => r.date === t);
+  const rec = { date: t,
+                mood: current.mood ?? (rows[i]?.mood ?? 0),
+                crave: current.crave ?? (rows[i]?.crave ?? 0) };
+  if (i >= 0) { const copy = rows.slice(); copy[i] = {...rows[i], ...rec}; return copy; }
+  return rows.concat(rec);
+};
+
+/* ========= Shared UI ========= */
+const Section=({title,children,right})=>(<section className="card"><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><h2 style={{margin:"4px 0 10px",fontSize:18}}>{title}</h2><div>{right}</div></div>{children}</section>);
+const useConfetti=()=>{const ref=useRef(null);const shot=()=>{const el=ref.current;if(!el)return;el.innerHTML="";for(let i=0;i<60;i++){const d=document.createElement("div");d.style.cssText=`position:absolute;top:0;left:${Math.random()*100}%;;width:6px;height:6px;border-radius:50%;background:hsl(${Math.random()*360},100%,70%);transform:translateY(-10px);opacity:.9;`;el.appendChild(d);const end=el.animate([{transform:`translate(${(Math.random()-.5)*200}px,-10px)`},{transform:`translate(${(Math.random()-.5)*200}px,280px)`,opacity:.1}],{duration:1200+Math.random()*800,easing:"cubic-bezier(.2,.7,.1,1)"});end.onfinish=()=>d.remove()}setTimeout(()=>el.innerHTML="",2200)};return{ref,shot}};
+/* ========= Header & KPIs ========= */
+function Header({tab,setTab}){
+  return (
+    <header>
+      <div className="wrap brand">
+        <div className="logo"></div>
+        <div>
+          <h1>Recovery Aid</h1>
+          <div className="small">Crisis • Addiction • Safety • Resources • Mentors</div>
+        </div>
+        <div className="tabbar">
+          {["Home","Check-ins","Tools","Resources","Mentors","Notifications","Profile","Admin"].map(t=>
+            <button key={t} className={"tab "+(tab===t?"sel":"")} onClick={()=>setTab(t)}>{t}</button>)}
+        </div>
+      </div>
+      <div className="hr"></div>
+    </header>
+  );
+}
+
+/* ===== Live-matching KPIs (uses preview rows) ===== */
+function KPIs({rows,current}){
+  const preview = withPreview(rows, current);
+  const last = preview.at(-1)||{date:null,mood:0,crave:0};
+  const tkey = todayKey();
+  const hasTodaySaved = rows.some(r=>r.date===tkey);
+  const isUnsaved = !hasTodaySaved && !!current;
+
+  const round1 = v => (v==null ? "-" : Math.round((+v||0)*10)/10);
+  const mood  = round1(last.mood);
+  const crave = round1(last.crave);
+
+  const avgMood = preview.length
+    ? round1(preview.reduce((s,r)=>s+(+r.mood||0),0)/preview.length)
+    : "-";
+
+  const streak = useMemo(()=>{
+    const arr=[...preview].sort((a,b)=>a.date.localeCompare(b.date));
+    let s=0; for(let i=arr.length-1;i>=0;i--){
+      const d=new Date(arr[i].date);
+      const daysAgo=Math.floor((Date.now()-d)/86400000);
+      if(daysAgo===(arr.length-1-i)) s++; else break;
+    }
+    return s;
+  },[preview]);
+
+  return (<div className="grid" style={{marginTop:10}}>
+    <Tile label={`Today – Mood${isUnsaved?" (unsaved)":""}`} value={mood} unit="/10"/>
+    <Tile label={`Today – Craving${isUnsaved?" (unsaved)":""}`} value={crave} unit="/10"/>
+    <Tile label="Avg Mood (30d)" value={avgMood}/>
+    <Tile label="Streak" value={streak} unit="days"/>
+  </div>);
+}
+
+function Tile({label,value,unit=""}){const pct=Math.min(100,Math.max(0,(Number(value)||0)*10));
+  return (<div className="card span-3" style={{padding:14}}>
+    <div className="small">{label}</div>
+    <div style={{fontSize:28,fontWeight:800,marginTop:6}}>{value}<span className="small"> {unit}</span></div>
+    <div className="meter" style={{marginTop:8}}><i style={{width:`${pct}%`}}/></div>
+  </div>);
+}
+
+/* ========= Charts & Rings ========= */
+function useAnimatedChart(ref,data){
+  useEffect(()=>{const cv=ref.current;if(!cv)return;const ctx=cv.getContext("2d");
+    const dpr=window.devicePixelRatio||1;const w=cv.clientWidth,h=cv.clientHeight;cv.width=w*dpr;cv.height=h*dpr;ctx.scale(dpr,dpr);
+    ctx.clearRect(0,0,w,h);ctx.strokeStyle="rgba(255,255,255,.08)";
+    for(let i=0;i<=10;i++){const y=h-(i/10)*h;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+    const recent=data.slice(-60);const step=recent.length?w/(recent.length-1||1):w;const y=v=>h-(v/10)*h;
+    const draw=(vals,stroke,fill)=>{if(!recent.length)return;ctx.lineWidth=2;ctx.strokeStyle=stroke;ctx.beginPath();
+      vals.forEach((v,i)=>{const x=i*step,Y=y(v);i?ctx.lineTo(x,Y):ctx.moveTo(x,Y)});ctx.stroke();
+      ctx.fillStyle=fill;ctx.beginPath();ctx.moveTo(0,h);
+      vals.forEach((v,i)=>{const x=i*step,Y=y(v);ctx.lineTo(x,Y)});ctx.lineTo(w,h);ctx.closePath();ctx.fill()};
+    draw(recent.map(x=>x.mood),"#61eaff","#61eaff22");
+    draw(recent.map(x=>x.crave),"#9c8cff","#9c8cff22");
+  },[data]);
+}
+function Ring({value,label}){const size=120,stroke=12,r=(size-stroke)/2,c=2*Math.PI*r,pct=Math.max(0,Math.min(100,(+value||0)*10));
+  return (<svg width={size} height={size}>
+    <circle cx={size/2} cy={size/2} r={r} stroke="rgba(255,255,255,.08)" strokeWidth={stroke} fill="none"/>
+    <circle cx={size/2} cy={size/2} r={r} stroke="#61eaff" strokeWidth={stroke} fill="none"
+      strokeDasharray={`${(pct/100)*c} ${c}`} strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`}/>
+    <text x="50%" y="48%" textAnchor="middle" style={{fontWeight:800,fontSize:24}}>{Math.round(value||0)}</text>
+    <text x="50%" y="66%" textAnchor="middle" className="small">{label}</text>
+  </svg>);
+}
+
+/* ========= Crisis SOS + Wizard ========= */
+function CrisisSOS(){
+  const [open,setOpen]=useState(false),[wizard,setWizard]=useState(false);
+  return (
+    <Section title="🚨 Crisis SOS" right={<div className="row">
+        <button className="btn red" onClick={()=>setOpen(true)}>Open</button>
+        <button className="btn" onClick={()=>setWizard(true)}>Plan Wizard</button>
+      </div>}>
+      <p className="small">Press <strong>Open</strong> for immediate options, or run the guided wizard to create a fast crisis plan.</p>
+
+      <div className={"modal "+(open?"show":"")} role="dialog" aria-modal="true">
+        <div className="sheet">
+          <div className="row" style={{justifyContent:"space-between",alignItems:"center"}}>
+            <h3 style={{margin:0}}>Immediate Help</h3>
+            <div className="row">
+              <button className="btn" onClick={()=>speak("If you are in danger, call 9 1 1. In the U.S., call or text 9 8 8 for the Suicide and Crisis Lifeline.")}>🔈 Voice</button>
+              <button className="btn" onClick={()=>setOpen(false)}>Close</button>
+            </div>
+          </div>
+          <div className="grid" style={{gap:12,gridTemplateColumns:"repeat(12,1fr)"}}>
+            <div className="item" style={{gridColumn:"span 6"}}><div className="list">
+              <a className="btn red" href="tel:988">Call 988 (US)</a>
+              <a className="btn accent" href="https://988lifeline.org/chat" target="_blank" rel="noopener">Chat 988</a>
+              <a className="btn" href="sms:988">Text 988</a>
+            </div></div>
+            <div className="item" style={{gridColumn:"span 6"}}><div className="list">
+              <a className="btn" href="tel:911">Call 911 (Emergency)</a>
+              <a className="btn" href="https://findtreatment.gov" target="_blank" rel="noopener">FindTreatment.gov</a>
+              <a className="btn" href="https://www.samhsa.gov/find-help/national-helpline" target="_blank" rel="noopener">SAMHSA Helpline</a>
+            </div></div>
+          </div>
+          <div className="small">Not in the US? Try <a href="https://www.befrienders.org/" target="_blank" rel="noopener">Befrienders (global hotlines)</a>.</div>
+        </div>
+      </div>
+
+      <div className={"modal "+(wizard?"show":"")} role="dialog" aria-modal="true">
+        <div className="sheet"><Wizard onClose={()=>setWizard(false)}/></div>
+      </div>
+    </Section>
+  );
+}
+function Wizard({onClose}){
+  const steps=[
+    {k:"warn",q:"My warning signs",hint:"thoughts, feelings, behaviors"},
+    {k:"cope",q:"Coping steps I can do alone",hint:"breathing, grounding, music"},
+    {k:"people",q:"People I can contact",hint:"names + phones"},
+    {k:"safe",q:"Safe places I can go",hint:"friend, clinic, library"},
+    {k:"reasons",q:"Reasons to live / goals",hint:"family, pets, goals"}
+  ];
+  const [i,setI]=useState(0); const [draft,setDraft]=useState(LS.get("safety",{}));
+  const next=()=>setI(x=>Math.min(x+1,steps.length)), prev=()=>setI(x=>Math.max(x-1,0));
+  const save=()=>{LS.set("safety",draft);toast("Safety plan saved ✓");onClose()};
+  if(i===steps.length) return (<div><h3>Done 🎉</h3><p className="small">Your crisis plan is saved locally and appears in <strong>Safety Plan</strong>.</p><button className="btn green" onClick={save}>Finish</button></div>);
+  return (<>
+    <h3 style={{marginTop:0}}>Crisis Plan Wizard</h3>
+    <div className="item">
+      <div className="small">{steps[i].q}</div>
+      <input value={draft[steps[i].k]||""} onChange={e=>setDraft({...draft,[steps[i].k]:e.target.value})} placeholder={steps[i].hint}/>
+    </div>
+    <div className="row" style={{justifyContent:"space-between"}}>
+      <button className="btn" onClick={i?prev:onClose}>{i?"Back":"Cancel"}</button>
+      <button className="btn accent" onClick={next}>Next →</button>
+    </div>
+  </>);
+}
+/* ========= Check-ins (live preview + Reset + Clear Today) ========= */
+function Checkins({setCurrent,onSaved,onCleared}){
+  const last = LS.get("checkins",[]).at(-1) || {mood:6,crave:5};
+  const [mood,setMood]=useState(last.mood ?? 6);
+  const [crave,setCrave]=useState(last.crave ?? 5);
+  const [note,setNote]=useState("");
+  const [rows,setRows]=useState([]); const canv=useRef(null);
+  const {ref:confetti,shot}=useConfetti();
+
+  const load=async()=>setRows(await api.listCheckins());
+  useEffect(()=>{load(); setCurrent?.({mood,crave});},[]);
+  useEffect(()=>{setCurrent?.({mood,crave});},[mood,crave]);
+
+  useAnimatedChart(canv,rows);
+
+  const save=async()=>{
+    await api.saveCheckin({date:todayKey(),mood:+mood,crave:+crave,note});
+    setNote(""); await load(); setCurrent?.(null);
+    shot(); toast("Check-in saved ✓"); onSaved?.();
+  };
+
+  const resetSliders=()=>{
+    const todaySaved = rows.find(r=>r.date===todayKey());
+    const base = todaySaved || rows.at(-1);
+    if (base){ setMood(+base.mood||0); setCrave(+base.crave||0); }
+    else { setMood(5); setCrave(5); }
+    toast("Sliders reset");
+  };
+
+  const clearToday=async()=>{
+    const all=LS.get("checkins",[]).filter(r=>r.date!==todayKey());
+    LS.set("checkins",all);
+    await load(); setCurrent?.(null);
+    toast("Today's entry cleared"); onCleared?.();
+  };
+
+  return (
+    <Section title="📈 Daily Check-in" right={
+      <div className="row" style={{gap:8,flexWrap:'wrap'}}>
+        <button className="btn" onClick={()=>{api.seedDemo();load();toast("Seeded 6 months")}}>Seed</button>
+        <button className="btn" onClick={resetSliders}>Reset</button>
+        <button className="btn red" onClick={clearToday}>Clear Today</button>
+        <button className="btn green" onClick={save}>Save today</button>
+      </div>
+    }>
+      <div className="grid">
+        <div className="span-7">
+          <canvas ref={canv} aria-label="Trend"></canvas>
+          <p className="small">Mood (cyan) • Cravings (violet). Look for pattern clusters.</p>
+        </div>
+        <div className="span-5">
+          <div className="grid">
+            <div className="card span-6"><Ring value={mood} label="Mood"/></div>
+            <div className="card span-6"><Ring value={crave} label="Craving"/></div>
+          </div>
+          <div className="item" style={{marginTop:10}}>
+            <label>Mood (0–10)</label>
+            <input type="range" min="0" max="10" value={mood} onChange={e=>setMood(+e.target.value)}/>
+            <label>Craving (0–10)</label>
+            <input type="range" min="0" max="10" value={crave} onChange={e=>setCrave(+e.target.value)}/>
+            <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Note (trigger, place, feelings)"/>
+          </div>
+        </div>
+      </div>
+      <div className="confetti" ref={confetti}></div>
+    </Section>
+  );
+}
+
+/* ========= CBT & Coping ========= */
+function UrgeSurf(){
+  const [left,setLeft]=useState(0),[id,setId]=useState(null);
+  const start=()=>{setLeft(120);if(id)clearInterval(id);const t=setInterval(()=>setLeft(x=>{if(x<=1){clearInterval(t);return 0}return x-1}),1000);setId(t);speak("Starting two minute urge surfing. Breathe in… and out.")};
+  const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+  return (<div className="card" style={{marginTop:10}}>
+    <strong>Urge Surfing (2 minutes)</strong>
+    <div className="row" style={{alignItems:"center"}}><button className="btn accent" onClick={start}>Start 2:00</button><span className="badge">{left?fmt(left):"Ready"}</span></div>
+    <div className="meter" style={{marginTop:10}}><i style={{width:`${(120-left)/120*100}%`}}/></div>
+  </div>);
+}
+function CBTTools(){
+  const [autoT,setAutoT]=useState(""),[evid,setEvid]=useState(""),[bal,setBal]=useState(""),[ok,setOk]=useState("");
+  const save=async()=>{await api.saveJournal({type:"cbt",date:new Date().toISOString(),auto:autoT,evidence:evid,balanced:bal});setOk("Saved ✓");setTimeout(()=>setOk(""),1200);setAutoT("");setEvid("");setBal("")};
+  const [ground,setGround]=useState(""); const saveGround=async()=>{await api.saveJournal({type:"ground",date:new Date().toISOString(),notes:ground});setGround("")};
+  return (
+    <Section title="🧠 CBT & Coping Tools" right={<button className="btn accent" onClick={()=>toast("AI Coach placeholder – connect your backend")}>AI Coach</button>}>
+      <div className="grid">
+        <div className="span-7 card">
+          <strong>Thought Reframe</strong>
+          <div className="row" style={{marginTop:8}}>
+            <textarea value={autoT} onChange={e=>setAutoT(e.target.value)} placeholder='Automatic thought (e.g., "I always fail.")'/>
+            <textarea value={evid} onChange={e=>setEvid(e.target.value)} placeholder="Evidence for/against"/>
+            <textarea value={bal} onChange={e=>setBal(e.target.value)} placeholder="Balanced thought (kinder, more accurate)"/>
+          </div>
+          <div className="row"><button className="btn" onClick={save}>Save to journal</button><span className="small" style={{color:"var(--green)"}}>{ok}</span></div>
+        </div>
+        <div className="span-5">
+          <div className="item">
+            <strong>5-4-3-2-1 Grounding</strong>
+            <ol className="small"><li>5 see</li><li>4 feel</li><li>3 hear</li><li>2 smell</li><li>1 taste</li></ol>
+            <div className="row"><textarea value={ground} onChange={e=>setGround(e.target.value)} placeholder="Write what you notice… (optional)"></textarea><button className="btn" onClick={saveGround}>Save</button></div>
+          </div>
+          <UrgeSurf/>
+        </div>
+      </div>
+    </Section>
+  );
+}
+function Journal(){
+  const [items,setItems]=useState([]); useEffect(()=>{api.listJournal().then(r=>setItems(r.slice().reverse()))},[]);
+  return (<Section title="📒 Journal">
+    <div className="list">
+      {!items.length&&<div className="item small">No entries yet.</div>}
+      {items.map((x,i)=>(
+        <div className="item" key={i}>
+          <div className="small" style={{color:"var(--muted)"}}>{new Date(x.date).toLocaleString()}</div>
+          {x.type==="cbt" ? (
+            <div className="small"><strong>Thought Reframe</strong><br/>
+              <em>Automatic:</em> {esc(x.auto)}<br/><em>Evidence:</em> {esc(x.evidence)}<br/><em>Balanced:</em> {esc(x.balanced)}
+            </div>
+          ) : (
+            <div className="small"><strong>Grounding</strong><br/>{esc(x.notes)}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  </Section>);
+}
+
+/* ========= Safety Plan ========= */
+function SafetyPlan(){
+  const [s,setS]=useState({}); useEffect(()=>{api.getSafety().then(setS)},[]);
+  const upd=(k,v)=>setS(p=>({...p,[k]:v})); const save=async()=>{await api.saveSafety(s);toast("Safety plan saved ✓")};
+  const exp=()=>{const blob=new Blob([JSON.stringify(s,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="safety-plan.json";a.click();URL.revokeObjectURL(url)};
+  return (<Section title="🛟 Safety Plan" right={<button className="btn" onClick={exp}>Export</button>}>
+    <div className="grid">
+      <div className="span-7 card">
+        <div className="list">
+          <input value={s.warn||""} onChange={e=>upd("warn",e.target.value)} placeholder="My warning signs…"/>
+          <input value={s.cope||""} onChange={e=>upd("cope",e.target.value)} placeholder="Coping steps I can do by myself…"/>
+          <input value={s.people||""} onChange={e=>upd("people",e.target.value)} placeholder="People I can contact (names/phones)…"/>
+          <input value={s.safe||""} onChange={e=>upd("safe",e.target.value)} placeholder="Safe places I can go…"/>
+          <input value={s.reasons||""} onChange={e=>upd("reasons",e.target.value)} placeholder="Reasons to live / goals…"/>
+        </div>
+        <div className="row" style={{marginTop:10}}>
+          <button className="btn green" onClick={save}>Save</button>
+          <button className="btn" onClick={()=>window.print()}>Print</button>
+        </div>
+      </div>
+      <div className="span-5 card">
+        <strong>Quick view</strong>
+        <div className="small" style={{marginTop:8}}>
+          Signs: {esc(s.warn||"")}<br/>Coping: {esc(s.cope||"")}<br/>
+          Contacts: {esc(s.people||"")}<br/>Places: {esc(s.safe||"")}<br/>
+          Reasons: {esc(s.reasons||"")}
+        </div>
+      </div>
+    </div>
+  </Section>);
+}
+
+/* ========= Profile (name, email, phone) ========= */
+function Profile(){
+  const [p,setP]=useState({name:"",email:"",phone:""}); const [ok,setOk]=useState("");
+  useEffect(()=>{ api.getProfile().then(setP); },[]);
+  const set=(k,v)=>setP(s=>({...s,[k]:v}));
+  const save=async()=>{ await api.saveProfile(p); setOk("Saved ✓"); setTimeout(()=>setOk(""),1200); toast("Profile saved"); };
+  return (
+    <Section title="👤 Profile">
+      <div className="list">
+        <input value={p.name}  onChange={e=>set("name",e.target.value)}  placeholder="Full name"/>
+        <input value={p.email} onChange={e=>set("email",e.target.value)} placeholder="Email (for alerts)"/>
+        <input value={p.phone} onChange={e=>set("phone",e.target.value)} placeholder="Phone (for SMS)"/>
+        <div className="row"><button className="btn green" onClick={save}>Save</button>
+          <span className="small" style={{marginLeft:10,color:"var(--green)"}}>{ok}</span></div>
+        <p className="small">Stored locally for demo. Connect your backend to persist securely.</p>
+      </div>
+    </Section>
+  );
+}
+
+/* ========= Notifications (push, email, sms) ========= */
+function Notifications(){
+  const [prefs,setPrefs]=useState({push:true,email:true,sms:false});
+  const [prof,setProf]=useState({name:"",email:"",phone:""});
+  useEffect(()=>{ api.getNotifPrefs().then(setPrefs); api.getProfile().then(setProf); },[]);
+  const set=(k,v)=>setPrefs(s=>({...s,[k]:v}));
+  const save=async()=>{ await api.saveNotifPrefs(prefs); toast("Preferences saved ✓"); };
+  const testAll=async()=>{ const msg="Gentle nudge: quick 1-min check-in?";
+    if(prefs.push) await api.sendPush({title:"Recovery Aid", body:msg});
+    if(prefs.email) await api.sendEmail({to:prof.email, subject:"Recovery Aid Reminder", body:msg});
+    if(prefs.sms) await api.sendSMS({to:prof.phone, body:msg});
+  };
+  return (
+    <Section title="🔔 Notifications">
+      <div className="list">
+        <div className="item">
+          <strong>Channels</strong>
+          <div className="row" style={{gap:10,flexWrap:"wrap",marginTop:8}}>
+            <label className="badge"><input type="checkbox" checked={prefs.push} onChange={e=>set("push",e.target.checked)}/> Push</label>
+            <label className="badge"><input type="checkbox" checked={prefs.email} onChange={e=>set("email",e.target.checked)}/> Email</label>
+            <label className="badge"><input type="checkbox" checked={prefs.sms} onChange={e=>set("sms",e.target.checked)}/> SMS</label>
+          </div>
+          <div className="small" style={{marginTop:6}}>
+            Email to: <em>{prof.email||"—"}</em> • SMS to: <em>{prof.phone||"—"}</em> (<a href="#" onClick={(e)=>{e.preventDefault();window.scrollTo({top:0,behavior:"smooth"});}}>edit in Profile</a>)
+          </div>
+        </div>
+
+        <div className="item">
+          <strong>Quick actions</strong>
+          <div className="row" style={{gap:8,marginTop:8}}>
+            <button className="btn" onClick={()=>api.sendPush({title:"Recovery Aid", body:"Daily check-in is open."})}>Test Push</button>
+            <button className="btn" onClick={()=>api.sendEmail({to:prof.email, subject:"Recovery Aid Test", body:"This is a test email."})}>Test Email</button>
+            <button className="btn" onClick={()=>api.sendSMS({to:prof.phone, body:"Recovery Aid test SMS."})}>Test SMS</button>
+            <button className="btn accent" onClick={testAll}>Test All</button>
+          </div>
+          <p className="small" style={{marginTop:8}}>Push uses the browser Notification API. Email/SMS use <code>mailto:</code>/<code>sms:</code> deep links in this demo—swap for SendGrid/Twilio in production.</p>
+        </div>
+
+        <div className="row" style={{gap:8}}>
+          <button className="btn green" onClick={save}>Save Preferences</button>
+        </div>
+      </div>
+    </Section>
+  );
+}
+/* ========= Resources (incl. Narconon & Geo) ========= */
+function Resources(){
+  const [region,setRegion]=useState("US"),[q,setQ]=useState(""),[geo,setGeo]=useState(null);
+  const list=()=> (RESOURCES[region]||[]).filter(r=>!q||r.name.toLowerCase().includes(q.toLowerCase())||(r.tags||[]).some(t=>t.includes(q.toLowerCase())));
+  const getGeo=()=>navigator.geolocation?.getCurrentPosition(p=>setGeo({lat:p.coords.latitude,lng:p.coords.longitude}),()=>toast("Geolocation blocked"));
+  return (
+    <Section title="🌐 Resources & Referrals" right={<button className="btn" onClick={getGeo}>Use my location</button>}>
+      <div className="row">
+        <select value={region} onChange={e=>setRegion(e.target.value)}>
+          <option value="US">United States</option>
+          <option value="GLOBAL">Global</option>
+        </select>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search (e.g., naloxone, detox, NA, SMART)"/>
+        <button className="btn" onClick={()=>setQ(q+"")}>Search</button>
+      </div>
+      {geo&&<p className="small">Location: {geo.lat.toFixed(3)}, {geo.lng.toFixed(3)} — use your backend to show nearby resources.</p>}
+      <div className="list" style={{marginTop:10}}>
+        {list().length===0&&<div className="item small">No matches. Try “detox”, “naloxone”, “NA”, “SMART”.</div>}
+        {list().map((r,i)=>(
+          <div className="item" key={i}>
+            <div className="row" style={{justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div><strong>{r.name}</strong></div>
+                <div className="small">{(r.tags||[]).map((t,j)=>
+                  <span key={j} className="badge" style={{marginRight:6}}>{t}</span>)}
+                </div>
+              </div>
+              <div className="row">
+                {r.phone&&<a className="btn" href={`tel:${r.phone}`}>Call</a>}
+                {r.url&&<a className="btn accent" href={r.url} target="_blank" rel="noopener">Open</a>}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="small">Emergency (US): <span className="kbd">911</span> • 988 Suicide & Crisis Lifeline (<a href="tel:988">call</a> • <a href="sms:988">text</a>)</p>
+    </Section>
+  );
+}
+
+/* ========= Mentors & Admin ========= */
+function MentorMatch(){
+  const [mentors,setMentors]=useState([]),[areas,setAreas]=useState(""),[notes,setNotes]=useState(""),[sel,setSel]=useState(null),[sent,setSent]=useState(false);
+  useEffect(()=>{api.listMentors().then(setMentors)},[]);
+  const send=async()=>{if(!sel)return toast("Select a mentor");await api.createMentorRequest({mentorId:sel,areas,notes,created:new Date().toISOString()});setSent(true);setAreas("");setNotes("");toast("Request sent ✓")};
+  return (<Section title="🤝 Peer-Mentor Matching">
+    <div className="list">
+      <select value={sel??""} onChange={e=>setSel(e.target.value)}>
+        <option value="" disabled>Select a mentor…</option>
+        {mentors.map(m=><option key={m.id} value={m.id}>{m.name} — {m.city} • {m.yearsSober}y</option>)}
+      </select>
+      <input value={areas} onChange={e=>setAreas(e.target.value)} placeholder="What do you want help with? (cravings, relapse, anxiety)"/>
+      <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Anything else (optional)…"></textarea>
+      <div className="row"><button className="btn green" onClick={send}>Send request</button>{sent&&<span className="small" style={{color:"var(--green)"}}>Sent ✓</span>}</div>
+    </div>
+  </Section>);
+}
+function AdminPanel(){
+  const seed=()=>{api.seedDemo();toast("Seeded 6 months")};
+  const wipe=()=>{if(confirm("Delete ALL local data?")) api.wipeAll()};
+  return (<Section title="🧪 Demo Settings" right={<button className="btn" onClick={wipe}>Wipe</button>}>
+    <div className="row"><button className="btn" onClick={seed}>Seed data</button></div>
+    <p className="small">Prototype only — not medical advice.</p>
+  </Section>);
+}
+function AdminDashboard(){
+  const [reqs,setReqs]=useState([]),[ms,setMs]=useState([]); useEffect(()=>{Promise.all([api.listMentorRequests(),api.listMentors()]).then(([r,m])=>{setReqs(r);setMs(m)})},[]);
+  const name=id=>ms.find(x=>x.id===id)?.name||id;
+  return (<Section title="🛠️ Admin Dashboard (demo)">
+    <div className="list">
+      {!reqs.length&&<div className="item small">No requests yet.</div>}
+      {reqs.map(r=>(
+        <div className="item" key={r.id}>
+          <div className="row" style={{justifyContent:"space-between"}}>
+            <div>
+              <strong>Mentor:</strong> {name(r.mentorId)}<br/>
+              <strong>Areas:</strong> {esc(r.areas)}<br/>
+              <strong>Notes:</strong> {esc(r.notes||"")}
+            </div>
+            <div className="small" style={{color:"var(--muted)"}}>{new Date(r.created).toLocaleString()}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </Section>);
+}
+
+/* ========= App Shell & Mount ========= */
+function Home({rows,current,setCurrent,setRows}){return(<Fragment><KPIs rows={rows} current={current}/><div className="grid" style={{marginTop:12}}><div className="span-6"><CrisisSOS/></div><div className="span-6"><Checkins setCurrent={setCurrent} onSaved={()=>api.listCheckins().then(setRows)} onCleared={()=>api.listCheckins().then(setRows)}/></div></div></Fragment>)}
+function App(){
+  const [tab,setTab]=useState("Home");
+  const [rows,setRows]=useState([]);
+  const [current,setCurrent]=useState(null); // live sliders
+
+  useEffect(()=>{api.listCheckins().then(setRows)},[]);
+
+  return (<Fragment>
+    <Header tab={tab} setTab={setTab}/>
+    <main className="wrap">
+      {tab==="Home"&&<Home rows={rows} current={current} setCurrent={setCurrent} setRows={setRows}/>}
+      {tab==="Check-ins"&&<Checkins setCurrent={setCurrent} onSaved={()=>api.listCheckins().then(setRows)} onCleared={()=>api.listCheckins().then(setRows)}/>}
+      {tab==="Tools"&&<Fragment><CBTTools/><Journal/></Fragment>}
+      {tab==="Resources"&&<Resources/>}
+      {tab==="Mentors"&&<MentorMatch/>}
+      {tab==="Notifications"&&<Notifications/>}
+      {tab==="Profile"&&<Profile/>}
+      {tab==="Admin"&&<Fragment><AdminPanel/><AdminDashboard/></Fragment>}
+    </main>
+  </Fragment>);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+document.getElementById('boot-status')?.remove();
+</script>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
